@@ -39,7 +39,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     description="User Manipulation Tools for Python",
     long_description=readme,
-    author="Brookhaven National Lab",
+    author="Brookhaven National Laboratory",
     author_email='swilkins@bnl.gov',
     url='https://github.com/NSLS-II/N2SNUserTools',
     python_requires='>={}'.format('.'.join(str(n) for n in min_version)),
