@@ -2,8 +2,7 @@ import sys
 from os.path import expanduser, basename
 import argparse
 from configparser import ConfigParser
-from ldap3.core.exceptions import (LDAPOperationsErrorResult,
-                                   LDAPInsufficientAccessRightsResult)
+from ldap3.core.exceptions import LDAPInsufficientAccessRightsResult
 
 from .utils import (n2sn_list_group_users_as_table,
                     n2sn_list_user_search_as_table)
@@ -133,8 +132,8 @@ def n2sn_change_user(operation):
         args.purge = False
 
     if ((args.login is None) and
-        (args.life_number is None) and
-        (args.purge is False)):
+       (args.life_number is None) and
+       (args.purge is False)):
 
         print(parser.error("You must specify the user by either"
                            " login (username) or life/guest number"))
@@ -217,7 +216,9 @@ def n2sn_change_user(operation):
                 print('')
                 for u in user_dn:
                     print("Removing user : {}".format(u[1]))
-                    ad.remove_user_from_group_by_dn(group['distinguishedName'], u[0])
+                    ad.remove_user_from_group_by_dn(
+                        group['distinguishedName'], u[0]
+                    )
 
             except LDAPInsufficientAccessRightsResult:
                 raise RuntimeError("Error removing user from group, "

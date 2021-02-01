@@ -1,10 +1,10 @@
 import ssl
 from getpass import getpass
-from ldap3 import Server, Connection, Tls, NTLM, SASL, GSSAPI, SUBTREE
+from ldap3 import (Server, Connection, Tls, NTLM,
+                   SASL, GSSAPI, SUBTREE)
 from ldap3.core.exceptions import (LDAPAuthMethodNotSupportedResult,
                                    LDAPPackageUnavailableError,
-                                   LDAPInvalidCredentialsResult,
-                                   LDAPNoSuchObjectResult)
+                                   LDAPInvalidCredentialsResult)
 
 
 from ldap3.extend.microsoft.addMembersToGroups \
@@ -17,8 +17,9 @@ from ldap3.extend.microsoft.removeMembersFromGroups \
 class ADObjects(object):
     _GROUP_ATTRIBUTES = ['sAMAccountName', 'distinguishedName',
                          'member', 'memberOf']
-    _USER_ATTRIBUTES = ['sAMAccountName', 'distinguishedName', 'displayName',
-                        'employeeID', 'mail', 'description']
+    _USER_ATTRIBUTES = ['sAMAccountName', 'distinguishedName',
+                        'displayName', 'employeeID', 'mail',
+                        'description', 'userPrincipalName']
 
     def __init__(self, server,
                  group_search=None,
@@ -82,8 +83,8 @@ class ADObjects(object):
         else:
             # Anonymous connection to LDAP server
             self.connection = Connection(self.server,
-                                            auto_bind=True,
-                                            raise_exceptions=False)
+                                         auto_bind=True,
+                                         raise_exceptions=False)
 
         return self
 
