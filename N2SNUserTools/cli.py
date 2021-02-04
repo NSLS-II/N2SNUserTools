@@ -98,6 +98,14 @@ def n2sn_list_users():
     )
 
 
+def n2sn_list_offline_users():
+    n2sn_list(
+        'List current enabled offline users for an instrument',
+        'Current offline users enabled',
+        'offline_user_group'
+    )
+
+
 def n2sn_list_staff():
     n2sn_list(
         'List current beamline staff for an instrument',
@@ -106,7 +114,7 @@ def n2sn_list_staff():
     )
 
 
-def n2sn_change_user(operation):
+def n2sn_change_user(operation, group_name):
     parser = base_argparser(
         'Add or remove user to/from instrument users list',
         auth=True)
@@ -149,7 +157,7 @@ def n2sn_change_user(operation):
         # Get the beamlie group
         user = None
 
-        group = ad.get_group_by_samaccountname(inst_config['user_group'])
+        group = ad.get_group_by_samaccountname(inst_config[group_name])
         if len(group) != 1:
             raise RuntimeError("Unable to find correct group for users")
 
@@ -178,7 +186,7 @@ def n2sn_change_user(operation):
             user = user[0]
 
         if args.purge:
-            user = ad.get_group_members(inst_config['user_group'])
+            user = ad.get_group_members(inst_config[group_name])
 
         group = group[0]
 
@@ -231,11 +239,19 @@ def n2sn_change_user(operation):
 
 
 def n2sn_add_user():
-    n2sn_change_user('add')
+    n2sn_change_user('add', 'user_group')
 
 
 def n2sn_remove_user():
-    n2sn_change_user('remove')
+    n2sn_change_user('remove', 'user_group')
+
+
+def n2sn_add_offline_user():
+    n2sn_change_user('add', 'offline_user_group')
+
+
+def n2sn_remove_offline_user():
+    n2sn_change_user('remove', 'offline_user_group')
 
 
 def n2sn_search_user():
