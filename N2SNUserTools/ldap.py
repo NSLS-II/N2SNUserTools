@@ -149,6 +149,14 @@ class ADObjects(object):
 
         return self._get_user(filter)
 
+    def get_user_by_surname_and_givenname_dict(
+        self, surname, givenname, user_type):
+        users = self.get_user_by_surname_and_givenname(
+            surname, givenname, user_type
+        )
+        d = {u['userPrincipalName']: u for u in users}
+        return d
+
     def get_group_by_samaccountname(self, id):
         return self._get_group('(sAMAccountName={})'.format(id))
 
