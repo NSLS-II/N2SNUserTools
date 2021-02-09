@@ -47,13 +47,9 @@ setup(
     entry_points={
         'console_scripts': [
             'n2sn_list_users = N2SNUserTools.cli:n2sn_list_users',
-            'n2sn_list_offline_users = N2SNUserTools.cli:n2sn_list_offline_users',
-            'n2sn_list_staff = N2SNUserTools.cli:n2sn_list_staff',
             'n2sn_search_user = N2SNUserTools.cli:n2sn_search_user',
             'n2sn_add_user = N2SNUserTools.cli:n2sn_add_user',
             'n2sn_remove_user = N2SNUserTools.cli:n2sn_remove_user',
-            'n2sn_add_offline_user = N2SNUserTools.cli:n2sn_add_offline_user',
-            'n2sn_remove_offline_user = N2SNUserTools.cli:n2sn_remove_offline_user',
         ],
     },
     include_package_data=True,

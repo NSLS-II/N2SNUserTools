@@ -2,7 +2,7 @@ import sys
 import random
 from os.path import expanduser, basename
 import argparse
-from configparser import ConfigParser
+import yaml
 from ldap3.core.exceptions import LDAPInsufficientAccessRightsResult
 
 from .utils import (n2sn_list_group_users_as_table,
@@ -13,8 +13,8 @@ from . import __version__
 
 # sys.tracebacklimit = 0
 
-config_files = ['/etc/n2sn_tools.conf',
-                expanduser('~/.config/n2sn_tools.conf')]
+config_files = ['/etc/n2sn_tools.yml',
+                expanduser('~/.config/n2sn_tools.yml')]
 
 
 def base_argparser(description, default_inst=True, auth=False):
@@ -44,16 +44,15 @@ def base_argparser(description, default_inst=True, auth=False):
 
 
 def read_config(parser, instrument=None, no_inst=False):
-    config = ConfigParser()
-
-    config.read(config_files)
+    with open(config_files[1]) as f:
+        config = yaml.load(f, Loader=yaml.SafeLoader)
 
     if 'common' not in config:
         print(parser.error(
             "Section 'common' missing from config file."))
 
     if 'server_list' in config['common']:
-        server = config['common']['server_list'].split(",")
+        server = config['common']['server_list']
         server = server[random.randint(0, len(server) - 1)]
         config['common']['server'] = server
 
@@ -66,12 +65,12 @@ def read_config(parser, instrument=None, no_inst=False):
 
             instrument = config['common']['default_instrument']
 
-        if instrument not in config:
+        if instrument not in config['instruments']:
             print(parser.error("instrument '{}' is not "
                                "defined in the config file."
                                .format(instrument)))
 
-        return config['common'], config[instrument]
+        return config['common'], config['instruments'][instrument]
 
     else:
         return config['common'], None
@@ -89,11 +88,16 @@ def n2sn_list(desc, message, group_name):
     print("\n{} for instrument {}\n"
           .format(message, config['name'].upper()))
 
+    attributes = { **common_config['view_attributes'],
+        **common_config['ctrl_attributes'] }
+
+    groups = {k:config[v + "_group"] for k,v in attributes.items()}
+
     print(n2sn_list_group_users_as_table(
           common_config['server'],
-          common_config['group_search'].strip('"'),
-          common_config['user_search'].strip('"'),
-          config[group_name]))
+          common_config['group_search'],
+          common_config['user_search'],
+          groups))
 
 
 def n2sn_list_users():
@@ -104,23 +108,7 @@ def n2sn_list_users():
     )
 
 
-def n2sn_list_offline_users():
-    n2sn_list(
-        'List current enabled offline users for an instrument',
-        'Current offline users enabled',
-        'offline_user_group'
-    )
-
-
-def n2sn_list_staff():
-    n2sn_list(
-        'List current beamline staff for an instrument',
-        'Current instrument staff',
-        'staff_group'
-    )
-
-
-def n2sn_change_user(operation, group_name):
+def n2sn_change_user(operation):
     parser = base_argparser(
         'Add or remove user to/from instrument users list',
         auth=True)
@@ -137,10 +125,15 @@ def n2sn_change_user(operation, group_name):
     if operation == 'remove':
         user_group.add_argument(
            '--purge', dest='purge', action='store_true',
-           help='Purge all users from group'
+           help='Purge all users from right'
         )
 
+    parser.add_argument('right', metavar='RIGHT', type=str,
+                        help='Right to add')
+
     args = parser.parse_args()
+
+    common_config, inst_config = read_config(parser, args.instrument)
 
     if operation != 'remove':
         args.purge = False
@@ -152,13 +145,20 @@ def n2sn_change_user(operation, group_name):
         print(parser.error("You must specify the user by either"
                            " login (username) or life/guest number"))
 
-    common_config, inst_config = read_config(parser, args.instrument)
+    att_names = list(common_config['ctrl_attributes'].keys())
+
+    if args.right.lower() not in att_names:
+        print(parser.error("You must specify a right from the options:"
+                           " {}".format((', '.join(att_names)).upper())))
+
+    right = common_config['ctrl_attributes'][args.right.lower()]
+    group_name = right + '_group'
 
     with ADObjects(common_config['server'],
                    authenticate=True,
                    username=args.username,
-                   group_search=common_config['group_search'].strip('"'),
-                   user_search=common_config['user_search'].strip('"')) as ad:
+                   group_search=common_config['group_search'],
+                   user_search=common_config['user_search']) as ad:
 
         # Get the beamlie group
         user = None
@@ -205,9 +205,10 @@ def n2sn_change_user(operation, group_name):
                                    "check you have the correct "
                                    "permission.") from None
 
-            print("\nSucsesfully added user \"{}\" to list of users"
+            print("\nSucsesfully added right {} to user \"{}\""
                   " for instrument {}\n"
-                  .format(user['displayName'], inst_config['name'].upper()))
+                  .format(right.upper(), user['displayName'],
+                          inst_config['name'].upper()))
 
         if (operation == "remove") and (args.purge is False):
             try:
@@ -218,9 +219,10 @@ def n2sn_change_user(operation, group_name):
                                    "check you have the correct "
                                    "permission.") from None
 
-            print("\nSucsesfully removed user \"{}\" from list of users"
+            print("\nSucsesfully removed right {} from user \"{}\""
                   " for instrument {}\n"
-                  .format(user['displayName'], inst_config['name'].upper()))
+                  .format(right.upper(), user['displayName'],
+                          inst_config['name'].upper()))
 
         if (operation == "remove") and (args.purge is True):
             user_dn = [(u['distinguishedName'], u['displayName'])
@@ -240,24 +242,17 @@ def n2sn_change_user(operation, group_name):
                                    "permission.") from None
 
             print("\nSucsesfully removed all users"
-                  " for instrument {}\n"
-                  .format(inst_config['name'].upper()))
+                  " for instrument {} with right '{}'\n"
+                  .format(inst_config['name'].upper(),
+                          right.upper()))
 
 
 def n2sn_add_user():
-    n2sn_change_user('add', 'user_group')
+    n2sn_change_user('add')
 
 
 def n2sn_remove_user():
-    n2sn_change_user('remove', 'user_group')
-
-
-def n2sn_add_offline_user():
-    n2sn_change_user('add', 'offline_user_group')
-
-
-def n2sn_remove_offline_user():
-    n2sn_change_user('remove', 'offline_user_group')
+    n2sn_change_user('remove')
 
 
 def n2sn_search_user():

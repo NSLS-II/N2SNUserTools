@@ -7,12 +7,19 @@ table_order = ['displayName', 'sAMAccountName',
                'mail', 'description', 'employeeID']
 
 
-def format_user_table(users):
+def format_user_table(users, attributes=None):
     table = PrettyTable()
-    table.field_names = ['Name', 'Login', 'E-Mail', 'Department',
-                         'Life/Guest Number', 'Can Login']
+    names = ['Name', 'Username', 'E-Mail', 'Department',
+             'L/G Number', 'Login']
 
-    for user in users:
+    if attributes is not None:
+        names += attributes
+
+    table.field_names = names
+
+    users = dict(sorted(users.items(), key=lambda item: item[1]['displayName']))
+
+    for upn, user in users.items():
         row = [user[v] for v in table_order]
         try:
             result = adquery(user['sAMAccountName'])
@@ -20,33 +27,44 @@ def format_user_table(users):
             row += ['ERROR']
         else:
             if result['zoneEnabled'] == 'true':
-                row += ['Yes']
+                row += ['X']
+            else:
+                row += ['']
+
+        for a in attributes:
+            if a in user:
+                row += ['X']
             else:
                 row += ['']
 
         table.add_row(row)
 
     table.align['Name'] = 'l'
-    table.align['Login'] = 'l'
+    table.align['Username'] = 'l'
     table.align['E-Mail'] = 'l'
-    table.align['Code'] = 'c'
-    table.align['Life Number'] = 'c'
-    table.align['Can Login'] = 'c'
 
     return table
 
 
 def n2sn_list_group_users_as_table(server, group_search, user_search,
-                                   group):
+                                   groups):
     """List all users who are in the users group"""
 
     # Connect to LDAP to get group members
 
     with ADObjects(server, group_search, user_search,
                    authenticate=False) as ad:
-        users = ad.get_group_members(group)
+        all_users = dict()
+        for name, group in groups.items():
+            users = ad.get_group_members_dict(group)
+            for u in users:
+                users[u][name] = True
+                if u in all_users:
+                    all_users[u] = { **all_users[u], **users[u] }
+                else:
+                    all_users[u] = users[u]
 
-    return format_user_table(users)
+    return format_user_table(all_users, list(groups.keys()))
 
 
 def n2sn_list_user_search_as_table(server, group_search, user_search,

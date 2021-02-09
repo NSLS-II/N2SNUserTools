@@ -175,6 +175,11 @@ class ADObjects(object):
 
         return dn_members
 
+    def get_group_members_dict(self, groupname):
+        members = self.get_group_members(groupname)
+        d = {m['userPrincipalName']: m for m in members}
+        return d
+
     def add_user_to_group_by_dn(self, group_name, username):
         ad_add_members_to_groups(self.connection, username, group_name,
                                  fix=True, raise_error=True)
