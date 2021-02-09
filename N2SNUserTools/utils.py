@@ -17,7 +17,9 @@ def format_user_table(users, attributes=None):
 
     table.field_names = names
 
-    users = dict(sorted(users.items(), key=lambda item: item[1]['displayName']))
+    users = dict(sorted(
+        users.items(), key=lambda item: item[1]['displayName']
+    ))
 
     for upn, user in users.items():
         row = [user[v] for v in table_order]
@@ -60,7 +62,7 @@ def n2sn_list_group_users_as_table(server, group_search, user_search,
             for u in users:
                 users[u][name] = True
                 if u in all_users:
-                    all_users[u] = { **all_users[u], **users[u] }
+                    all_users[u] = {**all_users[u], **users[u]}
                 else:
                     all_users[u] = users[u]
 

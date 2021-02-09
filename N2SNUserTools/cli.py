@@ -11,10 +11,12 @@ from .ldap import ADObjects
 
 from . import __version__
 
-# sys.tracebacklimit = 0
+sys.tracebacklimit = 0
 
-config_files = ['/etc/n2sn_tools.yml',
-                expanduser('~/.config/n2sn_tools.yml')]
+config_files = [
+    expanduser('~/.config/n2sn_tools.yml'),
+    '/etc/n2sn_tools.yml'
+]
 
 
 def base_argparser(description, default_inst=True, auth=False):
@@ -44,8 +46,18 @@ def base_argparser(description, default_inst=True, auth=False):
 
 
 def read_config(parser, instrument=None, no_inst=False):
-    with open(config_files[1]) as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
+    config = None
+    for fn in config_files:
+        try:
+            with open(fn) as f:
+                config = yaml.load(f, Loader=yaml.SafeLoader)
+        except IOError:
+            pass
+        else:
+            break
+
+    if config is None:
+        raise RuntimeError("Unable to open a config file")
 
     if 'common' not in config:
         print(parser.error(
@@ -88,10 +100,10 @@ def n2sn_list(desc, message, group_name):
     print("\n{} for instrument {}\n"
           .format(message, config['name'].upper()))
 
-    attributes = { **common_config['view_attributes'],
-        **common_config['ctrl_attributes'] }
+    attributes = {**common_config['view_attributes'],
+                  **common_config['ctrl_attributes']}
 
-    groups = {k:config[v + "_group"] for k,v in attributes.items()}
+    groups = {k: config[v + "_group"] for k, v in attributes.items()}
 
     print(n2sn_list_group_users_as_table(
           common_config['server'],
