@@ -100,8 +100,7 @@ def n2sn_list(desc, message, group_name):
     print("\n{} for instrument {}\n"
           .format(message, config['name'].upper()))
 
-    attributes = {**common_config['view_attributes'],
-                  **common_config['ctrl_attributes']}
+    attributes = common_config['attributes']
 
     groups = {k: config[v + "_group"] for k, v in attributes.items()}
 
@@ -157,13 +156,13 @@ def n2sn_change_user(operation):
         print(parser.error("You must specify the user by either"
                            " login (username) or life/guest number"))
 
-    att_names = list(common_config['ctrl_attributes'].keys())
+    att_names = list(common_config['attributes'].keys())
 
     if args.right.lower() not in att_names:
         print(parser.error("You must specify a right from the options:"
                            " {}".format((', '.join(att_names)).upper())))
 
-    right = common_config['ctrl_attributes'][args.right.lower()]
+    right = common_config['attributes'][args.right.lower()]
     group_name = right + '_group'
 
     with ADObjects(common_config['server'],
