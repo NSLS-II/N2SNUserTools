@@ -121,7 +121,7 @@ def n2sn_list_users():
 
 def n2sn_change_user(operation):
     parser = base_argparser(
-        'Add or remove user to/from instrument users list',
+        'Add or remove attribute from user',
         auth=True)
 
     user_group = parser.add_mutually_exclusive_group()
