@@ -9,11 +9,11 @@ table_order = ['displayName', 'sAMAccountName',
 
 def format_user_table(users, attributes=None):
     table = PrettyTable()
-    names = ['Name', 'Username', 'E-Mail', 'Department',
+    names = ['Name', 'Username', 'E-Mail', 'Dep.',
              'L/G Number', 'Login']
 
     if attributes is not None:
-        names += attributes
+        names += [a.upper() for a in attributes]
 
     table.field_names = names
 
@@ -32,12 +32,12 @@ def format_user_table(users, attributes=None):
                 row += ['X']
             else:
                 row += ['']
-
-        for a in attributes:
-            if a in user:
-                row += ['X']
-            else:
-                row += ['']
+        if attributes is not None:
+            for a in attributes:
+                if a in user:
+                    row += ['X']
+                else:
+                    row += ['']
 
         table.add_row(row)
 
@@ -74,7 +74,7 @@ def n2sn_list_user_search_as_table(server, group_search, user_search,
 
     with ADObjects(server, group_search, user_search,
                    authenticate=False) as ad:
-        users = ad.get_user_by_surname_and_givenname(
+        users = ad.get_user_by_surname_and_givenname_dict(
             surname, givenname, user_type
         )
     return format_user_table(users)
