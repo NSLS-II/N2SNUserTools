@@ -10,7 +10,7 @@ table_order = ['displayName', 'sAMAccountName',
 def format_user_table(users, attributes=None):
     table = PrettyTable()
     names = ['Name', 'Username', 'E-Mail', 'Dep.',
-             'L/G Number', 'Login']
+             'L/G Number', 'Status', 'Login']
 
     if attributes is not None:
         names += [a.upper() for a in attributes]
@@ -23,19 +23,34 @@ def format_user_table(users, attributes=None):
 
     for upn, user in users.items():
         row = [user[v] for v in table_order]
+
+        # Now put account status
+
+        symbol = list()
+        if user['locked']:
+            symbol += ['LOCK']
+        if user['set_passwd']:
+            symbol += ['SET PWD']
+
+        if len(symbol) == 0:
+            symbol = ["\u2713"]
+
+        row += [" ".join(symbol)]
+
         try:
             result = adquery(user['sAMAccountName'])
         except OSError:
             row += ['ERROR']
         else:
             if result['zoneEnabled'] == 'true':
-                row += ['X']
+                row += ['\u2713']
             else:
                 row += ['']
+
         if attributes is not None:
             for a in attributes:
                 if a in user:
-                    row += ['X']
+                    row += ['\u2713']
                 else:
                     row += ['']
 

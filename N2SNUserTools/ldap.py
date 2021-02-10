@@ -1,11 +1,11 @@
 import ssl
+from enum import IntEnum
 from getpass import getpass
 from ldap3 import (Server, Connection, Tls, NTLM,
                    SASL, GSSAPI, SUBTREE)
 from ldap3.core.exceptions import (LDAPAuthMethodNotSupportedResult,
                                    LDAPPackageUnavailableError,
                                    LDAPInvalidCredentialsResult)
-
 
 from ldap3.extend.microsoft.addMembersToGroups \
     import ad_add_members_to_groups
@@ -14,12 +14,37 @@ from ldap3.extend.microsoft.removeMembersFromGroups \
     import ad_remove_members_from_groups
 
 
+class ADUserAccountControl(IntEnum):
+    ADS_UF_SCRIPT = 0x00000001
+    ADS_UF_ACCOUNTDISABLE = 0x00000002
+    ADS_UF_HOMEDIR_REQUIRED = 0x00000008
+    ADS_UF_LOCKOUT = 0x00000010
+    ADS_UF_PASSWD_NOTREQD = 0x00000020
+    ADS_UF_PASSWD_CANT_CHANGE = 0x00000040
+    ADS_UF_ENCRYPTED_TEXT_PASSWORD_ALLOWED = 0x00000080
+    ADS_UF_TEMP_DUPLICATE_ACCOUNT = 0x00000100
+    ADS_UF_NORMAL_ACCOUNT = 0x00000200
+    ADS_UF_INTERDOMAIN_TRUST_ACCOUNT = 0x00000800
+    ADS_UF_WORKSTATION_TRUST_ACCOUNT = 0x00001000
+    ADS_UF_SERVER_TRUST_ACCOUNT = 0x00002000
+    ADS_UF_DONT_EXPIRE_PASSWD = 0x00010000
+    ADS_UF_MNS_LOGON_ACCOUNT = 0x00020000
+    ADS_UF_SMARTCARD_REQUIRED = 0x00040000
+    ADS_UF_TRUSTED_FOR_DELEGATION = 0x00080000
+    ADS_UF_NOT_DELEGATED = 0x00100000
+    ADS_UF_USE_DES_KEY_ONLY = 0x00200000
+    ADS_UF_DONT_REQUIRE_PREAUTH = 0x00400000
+    ADS_UF_PASSWORD_EXPIRED = 0x00800000
+    ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = 0x01000000
+
 class ADObjects(object):
     _GROUP_ATTRIBUTES = ['sAMAccountName', 'distinguishedName',
                          'member', 'memberOf']
     _USER_ATTRIBUTES = ['sAMAccountName', 'distinguishedName',
                         'displayName', 'employeeID', 'mail',
-                        'description', 'userPrincipalName']
+                        'description', 'userPrincipalName',
+                        'pwdLastSet', 'userAccountControl',
+                        'lockoutTime']
 
     def __init__(self, server,
                  group_search=None,
@@ -108,6 +133,32 @@ class ADObjects(object):
 
         return rtn
 
+    def _calc_user_fields(self, entry):
+        """Calculate fields based on LDAP properties"""
+        out = dict()
+
+        if 'pwdLastSet' in entry and 'userAccountControl' in entry:
+            pwd_last_set = int(entry.pwdLastSet.value)
+            user_account_control = int(entry.userAccountControl.value)
+            pwd_exp = bool(user_account_control & ADUserAccountControl.ADS_UF_DONT_EXPIRE_PASSWD)
+
+            if not pwd_exp and pwd_last_set == 0:
+                out['set_passwd'] = True
+            else:
+                out['set_passwd'] = False
+
+        if 'lockoutTime' in entry:
+            lockout_time = entry.lockoutTime.value
+            if lockout_time is not None:
+                if int(lockout_time) != 0:
+                    out['locked'] = True
+                else:
+                    out['locked'] = False
+            else:
+                out['locked'] = False
+
+        return out
+
     def _get_user(self, search_filter):
         self.connection.search(
             search_base=self._user_search,
@@ -120,8 +171,10 @@ class ADObjects(object):
 
         rtn = list()
         for entry in self.connection.entries:
-            rtn.append({key: entry[key].value
-                        for key in self._USER_ATTRIBUTES})
+            uf = self._calc_user_fields(entry)
+            user = {key: entry[key].value
+                    for key in self._USER_ATTRIBUTES}
+            rtn.append({**user, **uf})
 
         return rtn
 
