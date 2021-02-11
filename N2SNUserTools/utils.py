@@ -31,6 +31,8 @@ def format_user_table(users, attributes=None):
             symbol += ['LOCKED']
         if user['set_passwd']:
             symbol += ['SETPWD']
+        if user['was_locked']:
+            symbol += ['LOCK CLEAR']
 
         if len(symbol) == 0:
             symbol = ["\u2713"]

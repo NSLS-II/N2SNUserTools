@@ -63,6 +63,7 @@ class ADObjects(object):
                         'description', 'userPrincipalName',
                         'pwdLastSet', 'userAccountControl',
                         'lockoutTime']
+    _LOCKOUT_TIME = datetime.timedelta(minutes=15)
 
     def __init__(self, server,
                  group_search=None,
@@ -169,19 +170,22 @@ class ADObjects(object):
 
         if 'lockoutTime' in entry:
             lockout_time = entry.lockoutTime.value
-            if lockout_time is not None:
+            if lockout_time is None:
+                lockout_time = mdci
+            else:
                 lockout_time = get_ad_time(lockout_time)
-                if lockout_time != mdci:
-                    now = datetime.datetime.now(datetime.timezone.utc)
-                    delta_t = lockout_time - now
-                    if delta_t.days >= 0:
-                        out['locked'] = True
-                    else:
-                        out['locked'] = False
+
+            if lockout_time != mdci:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                delta_t = now - lockout_time
+                out['was_locked'] = True
+                if delta_t <= self._LOCKOUT_TIME:
+                    out['locked'] = True
                 else:
                     out['locked'] = False
             else:
                 out['locked'] = False
+                out['was_locked'] = False
 
         return out
 
