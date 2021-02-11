@@ -1,5 +1,6 @@
 import ssl
 from enum import IntEnum
+import datetime
 from getpass import getpass
 from ldap3 import (Server, Connection, Tls, NTLM,
                    SASL, GSSAPI, SUBTREE)
@@ -12,6 +13,22 @@ from ldap3.extend.microsoft.addMembersToGroups \
 
 from ldap3.extend.microsoft.removeMembersFromGroups \
     import ad_remove_members_from_groups
+
+
+mdci = datetime.datetime(1601, 1, 1, tzinfo=datetime.timezone.utc)
+
+
+def get_ad_time(adtime):
+    if type(adtime) == datetime.datetime:
+        return adtime
+
+    else:
+        microseconds = int(adtime) / 10
+        seconds, microseconds = divmod(microseconds, 1e6)
+        days, seconds = divmod(seconds, 86400)
+        a = datetime.datetime(1601, 1, 1, tzinfo=datetime.timezone.utc)
+        b = datetime.timedelta(days, seconds, microseconds)
+        return a + b
 
 
 class ADUserAccountControl(IntEnum):
@@ -36,6 +53,7 @@ class ADUserAccountControl(IntEnum):
     ADS_UF_DONT_REQUIRE_PREAUTH = 0x00400000
     ADS_UF_PASSWORD_EXPIRED = 0x00800000
     ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = 0x01000000
+
 
 class ADObjects(object):
     _GROUP_ATTRIBUTES = ['sAMAccountName', 'distinguishedName',
@@ -138,11 +156,13 @@ class ADObjects(object):
         out = dict()
 
         if 'pwdLastSet' in entry and 'userAccountControl' in entry:
-            pwd_last_set = int(entry.pwdLastSet.value)
-            user_account_control = int(entry.userAccountControl.value)
-            pwd_exp = bool(user_account_control & ADUserAccountControl.ADS_UF_DONT_EXPIRE_PASSWD)
+            pwd_last_set = get_ad_time(entry.pwdLastSet.value)
 
-            if not pwd_exp and pwd_last_set == 0:
+            user_account_control = int(entry.userAccountControl.value)
+            pwd_exp = bool(user_account_control &
+                           ADUserAccountControl.ADS_UF_DONT_EXPIRE_PASSWD)
+
+            if not pwd_exp and pwd_last_set == mdci:
                 out['set_passwd'] = True
             else:
                 out['set_passwd'] = False
@@ -150,8 +170,14 @@ class ADObjects(object):
         if 'lockoutTime' in entry:
             lockout_time = entry.lockoutTime.value
             if lockout_time is not None:
-                if int(lockout_time) != 0:
-                    out['locked'] = True
+                lockout_time = get_ad_time(lockout_time)
+                if lockout_time != mdci:
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    delta_t = lockout_time - now
+                    if delta_t.days >= 0:
+                        out['locked'] = True
+                    else:
+                        out['locked'] = False
                 else:
                     out['locked'] = False
             else:
@@ -203,7 +229,7 @@ class ADObjects(object):
         return self._get_user(filter)
 
     def get_user_by_surname_and_givenname_dict(
-        self, surname, givenname, user_type):
+            self, surname, givenname, user_type):
         users = self.get_user_by_surname_and_givenname(
             surname, givenname, user_type
         )
