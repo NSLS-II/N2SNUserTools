@@ -178,11 +178,12 @@ class ADObjects(object):
             if lockout_time != mdci:
                 now = datetime.datetime.now(datetime.timezone.utc)
                 delta_t = now - lockout_time
-                out['was_locked'] = True
                 if delta_t <= self._LOCKOUT_TIME:
+                    out['was_locked'] = False
                     out['locked'] = True
                 else:
                     out['locked'] = False
+                    out['was_locked'] = True
             else:
                 out['locked'] = False
                 out['was_locked'] = False
