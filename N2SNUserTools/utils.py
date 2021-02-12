@@ -28,9 +28,10 @@ def format_user_table(users, attributes=None):
 
         symbol = list()
         if user['locked']:
-            symbol += ['LOCKED']
+            symbol += ['LOCKED {} min'.format(
+                int(user['lock_time'].seconds / 60) + 1)]
         if user['set_passwd']:
-            symbol += ['SETPWD']
+            symbol += ['SET PASSWD']
         if user['was_locked']:
             symbol += ['LOCK CLEAR']
 

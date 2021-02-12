@@ -181,6 +181,7 @@ class ADObjects(object):
                 if delta_t <= self._LOCKOUT_TIME:
                     out['was_locked'] = False
                     out['locked'] = True
+                    out['lock_time'] = self._LOCKOUT_TIME - delta_t
                 else:
                     out['locked'] = False
                     out['was_locked'] = True
