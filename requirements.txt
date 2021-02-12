@@ -1,5 +1,4 @@
 # List required packages in this file, one per line.
 ldap3
 prettytable
-configparser
 gssapi
