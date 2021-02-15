@@ -245,8 +245,29 @@ class ADObjects(object):
     def get_group_by_samaccountname(self, id):
         return self._get_group('(sAMAccountName={})'.format(id))
 
-    def get_group_members(self, group_name):
+    def get_group_members(self, group_name, recursive=False):
         group = self.get_group_by_samaccountname(group_name)
+
+        if recursive:
+            ldap_filter = "(&(objectCategory=person)(objectClass=user)"
+            ldap_filter += "(memberOf:1.2.840.113556.1.4.1941:="
+            ldap_filter += "{}))".format(group[0]['distinguishedName'])
+
+            print(ldap_filter)
+
+            self.connection.search(
+                search_base=self._group_search,
+                search_scope=SUBTREE,
+                attributes=self._USER_ATTRIBUTES,
+                search_filter=ldap_filter
+            )
+
+            rtn = list()
+            for entry in self.connection.entries:
+                rtn.append({key: entry[key].value
+                            for key in self._USER_ATTRIBUTES})
+
+            return rtn
 
         if len(group) == 0:
             return list()
