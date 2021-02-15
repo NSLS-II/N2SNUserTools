@@ -267,8 +267,6 @@ class ADObjects(object):
                 rtn.append({key: entry[key].value
                             for key in self._USER_ATTRIBUTES})
 
-            print(rtn)
-
             return rtn
 
         if len(group) == 0:
