@@ -266,8 +266,10 @@ class ADObjects(object):
 
         rtn = list()
         for entry in self.connection.entries:
-            rtn.append({key: entry[key].value
-                        for key in self._USER_ATTRIBUTES})
+            uf = self._calc_user_fields(entry)
+            user = {key: entry[key].value
+                    for key in self._USER_ATTRIBUTES}
+            rtn.append({**user, **uf})
 
         return rtn
 
