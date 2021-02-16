@@ -245,49 +245,31 @@ class ADObjects(object):
     def get_group_by_samaccountname(self, id):
         return self._get_group('(sAMAccountName={})'.format(id))
 
-    def get_group_members(self, group_name, recursive=False):
+    def get_group_members(self, group_name):
         group = self.get_group_by_samaccountname(group_name)
 
-        if recursive:
-            ldap_filter = "(&(objectCategory=person)(objectClass=user)"
-            ldap_filter += "(memberOf:1.2.840.113556.1.4.1941:="
-            ldap_filter += "{}))".format(group[0]['distinguishedName'])
-
-            print(ldap_filter)
-
-            self.connection.search(
-                search_base=self._group_search,
-                search_scope=SUBTREE,
-                attributes=self._USER_ATTRIBUTES,
-                search_filter=ldap_filter
-            )
-
-            rtn = list()
-            for entry in self.connection.entries:
-                rtn.append({key: entry[key].value
-                            for key in self._USER_ATTRIBUTES})
-
-            return rtn
-
-        if len(group) == 0:
-            return list()
+        if len(group) != 1:
+            raise RuntimeError("Group name is not uinque")
 
         group = group[0]
 
-        if group['member'] is None:
-            return list()
+        ldap_filter = "(&(objectCategory=person)(objectClass=user)"
+        ldap_filter += "(memberOf:1.2.840.113556.1.4.1941:="
+        ldap_filter += "{}))".format(group['distinguishedName'])
 
-        if type(group['member']) == str:
-            members = [group['member']]
-        else:
-            members = group['member']
+        self.connection.search(
+            search_base=self._group_search,
+            search_scope=SUBTREE,
+            attributes=self._USER_ATTRIBUTES,
+            search_filter=ldap_filter
+        )
 
-        dn_members = list()
-        for member in members:
-            user = self.get_user_by_dn(member)
-            dn_members.append(user[0])
+        rtn = list()
+        for entry in self.connection.entries:
+            rtn.append({key: entry[key].value
+                        for key in self._USER_ATTRIBUTES})
 
-        return dn_members
+        return rtn
 
     def get_group_members_dict(self, groupname):
         members = self.get_group_members(groupname)
