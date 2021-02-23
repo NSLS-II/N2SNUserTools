@@ -100,9 +100,7 @@ def n2sn_list(desc, message, group_name):
     print("\n{} for instrument {}\n"
           .format(message, config['name'].upper()))
 
-    attributes = common_config['attributes']
-
-    groups = {k: config[v + "_group"] for k, v in attributes.items()}
+    groups = config['rights']
 
     print(n2sn_list_group_users_as_table(
           common_config['server'],
@@ -156,14 +154,14 @@ def n2sn_change_user(operation):
         print(parser.error("You must specify the user by either"
                            " login (username) or life/guest number"))
 
-    att_names = list(common_config['attributes'].keys())
+    att_names = list(inst_config['rights'].keys())
 
     if args.right.lower() not in att_names:
         print(parser.error("You must specify a right from the options:"
                            " {}".format((', '.join(att_names)).upper())))
 
-    right = common_config['attributes'][args.right.lower()]
-    group_name = right + '_group'
+    right = args.right.lower()
+    group_name = inst_config['rights'][right]
 
     with ADObjects(common_config['server'],
                    authenticate=True,
@@ -174,7 +172,7 @@ def n2sn_change_user(operation):
         # Get the beamlie group
         user = None
 
-        group = ad.get_group_by_samaccountname(inst_config[group_name])
+        group = ad.get_group_by_samaccountname(group_name)
         if len(group) != 1:
             raise RuntimeError("Unable to find correct group for users")
 
