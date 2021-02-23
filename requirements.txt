@@ -2,3 +2,4 @@
 ldap3
 prettytable
 gssapi
+pyyaml
