@@ -69,9 +69,15 @@ class ADObjects(object):
                  group_search=None,
                  user_search=None,
                  authenticate=False,
-                 username=None):
+                 username=None,
+                 ca_certs_file=None):
 
-        tls_conf = Tls(validate=ssl.CERT_NONE, version=ssl.PROTOCOL_TLSv1)
+        tls_conf = Tls(
+            ca_certs_file=ca_certs_file,
+            validate=ssl.CERT_REQUIRED,
+            version=ssl.PROTOCOL_TLSv1_2
+        )
+
         self.server = Server(server, use_ssl=True, tls=tls_conf)
         self.authenticate = authenticate
         self.username = username

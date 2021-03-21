@@ -106,6 +106,7 @@ def n2sn_list(desc, message, group_name):
           common_config['server'],
           common_config['group_search'],
           common_config['user_search'],
+          common_config.get('ldap_ca_cert', None),
           groups))
 
 
@@ -166,6 +167,7 @@ def n2sn_change_user(operation):
     with ADObjects(common_config['server'],
                    authenticate=True,
                    username=args.username,
+                   ca_certs_file=common_config.get('ldap_ca_cert', None),
                    group_search=common_config['group_search'],
                    user_search=common_config['user_search']) as ad:
 
