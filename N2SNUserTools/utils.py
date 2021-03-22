@@ -67,12 +67,13 @@ def format_user_table(users, attributes=None):
 
 
 def n2sn_list_group_users_as_table(server, group_search, user_search,
-                                   groups):
+                                   ca_certs_file, groups):
     """List all users who are in the users group"""
 
     # Connect to LDAP to get group members
 
     with ADObjects(server, group_search, user_search,
+                   ca_certs_file=ca_certs_file,
                    authenticate=False) as ad:
         all_users = dict()
         for name, group in groups.items():
