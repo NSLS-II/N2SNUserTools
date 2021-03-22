@@ -216,7 +216,7 @@ def n2sn_change_user(operation):
                                    "check you have the correct "
                                    "permission.") from None
 
-            print("\nSucsesfully added right {} to user \"{}\""
+            print("\nSuccessfully added right {} to user \"{}\""
                   " for instrument {}\n"
                   .format(right.upper(), user['displayName'],
                           inst_config['name'].upper()))
@@ -230,7 +230,7 @@ def n2sn_change_user(operation):
                                    "check you have the correct "
                                    "permission.") from None
 
-            print("\nSucsesfully removed right {} from user \"{}\""
+            print("\nSuccessfully removed right {} from user \"{}\""
                   " for instrument {}\n"
                   .format(right.upper(), user['displayName'],
                           inst_config['name'].upper()))
@@ -252,7 +252,7 @@ def n2sn_change_user(operation):
                                    "check you have the correct "
                                    "permission.") from None
 
-            print("\nSucsesfully removed all users"
+            print("\nSuccessfully removed all users"
                   " for instrument {} with right '{}'\n"
                   .format(inst_config['name'].upper(),
                           right.upper()))
