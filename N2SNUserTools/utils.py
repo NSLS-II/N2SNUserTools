@@ -89,9 +89,11 @@ def n2sn_list_group_users_as_table(server, group_search, user_search,
 
 
 def n2sn_list_user_search_as_table(server, group_search, user_search,
-                                   surname, givenname, user_type):
+                                   surname, givenname, user_type,
+                                   ca_certs_file):
 
     with ADObjects(server, group_search, user_search,
+                   ca_certs_file=ca_certs_file,
                    authenticate=False) as ad:
         users = ad.get_user_by_surname_and_givenname_dict(
             surname, givenname, user_type
