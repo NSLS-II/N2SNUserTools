@@ -321,7 +321,8 @@ def n2sn_search_user():
         common_config['server'],
         common_config['group_search'].strip('"'),
         common_config['user_search'].strip('"'),
-        args.surname, args.givenname, args.type
+        args.surname, args.givenname, args.type,
+        ca_certs_file=common_config.get('ldap_ca_cert', None),
     )
 
     print(table)
