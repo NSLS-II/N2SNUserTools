@@ -1,8 +1,7 @@
 import subprocess
 
 adquery_cmd = '/usr/bin/adquery'
-adquery_opts = ['enabled', 'unixname', 'samname',
-                'uid', 'locked', 'disabled']
+adquery_opts = ['enabled', 'unixname', 'samname', 'uid']
 adquery_valid_tok = ['zoneEnabled', 'unixname', 'uid',
                      'samAccountName', 'accountLocked', 'accountDisabled']
 
@@ -12,12 +11,16 @@ def adquery(username):
     cmd += ['--' + opt for opt in adquery_opts]
     cmd += [username]
 
-    process = subprocess.run(cmd, capture_output=True)
+    process = subprocess.run(cmd,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             universal_newlines=True)
 
     if process.returncode != 0:
         raise OSError("adquery call failed")
 
-    stdout = process.stdout.decode('UTF-8')
+    # stdout = process.stdout.decode('UTF-8')
+    stdout = process.stdout
 
     rtn = dict()
     for line in stdout.splitlines():
