@@ -254,8 +254,11 @@ class ADObjects(object):
     def get_group_members(self, group_name):
         group = self.get_group_by_samaccountname(group_name)
 
-        if len(group) != 1:
-            raise RuntimeError("Group name is not uinque")
+        if len(group) > 1:
+            raise RuntimeError(f"Group name '{group_name}' is not unique. "
+                               f"Found groups: {group}")
+        elif len(group) == 0:
+            raise RuntimeError(f"Group name '{group_name}' is empty.")
 
         group = group[0]
 
