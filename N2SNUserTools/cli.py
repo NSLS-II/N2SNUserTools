@@ -132,13 +132,15 @@ def n2sn_change_user(operation):
         '-n', '--life-number', dest='life_number', action='store',
         help='Life number of guest number of user',
     )
+
     if operation == 'remove':
         user_group.add_argument(
            '--purge', dest='purge', action='store_true',
            help='Purge all users from right'
         )
 
-    parser.add_argument('right', metavar='RIGHT', type=str,
+    parser.add_argument('right', metavar='RIGHT',
+                        type=str,
                         help='Right to add')
 
     args = parser.parse_args()
@@ -157,12 +159,15 @@ def n2sn_change_user(operation):
 
     att_names = list(inst_config['rights'].keys())
 
-    if args.right.lower() not in att_names:
+    print(set([a.lower() for a in args.right.split(',')]))
+    print(set(att_names))
+
+    rights = args.right.split(',')
+
+    if len(set(att_names) & set([a.lower() for a in rights])) \
+       != len(rights):
         print(parser.error("You must specify a right from the options:"
                            " {}".format((', '.join(att_names)).upper())))
-
-    right = args.right.lower()
-    group_name = inst_config['rights'][right]
 
     with ADObjects(common_config['server'],
                    authenticate=True,
@@ -171,91 +176,103 @@ def n2sn_change_user(operation):
                    group_search=common_config['group_search'],
                    user_search=common_config['user_search']) as ad:
 
-        # Get the beamlie group
-        user = None
+        for right in rights:
+            group_name = inst_config['rights'][right.lower()]
 
-        group = ad.get_group_by_samaccountname(group_name)
-        if len(group) != 1:
-            raise RuntimeError("Unable to find correct group for users")
+            users = list()
 
-        if args.login is not None:
-            user = ad.get_user_by_samaccountname(args.login)
-            if len(user) == 0:
-                raise RuntimeError("Unable to find user {}, please check."
-                                   .format(args.login))
-            if len(user) != 1:
-                raise RuntimeError("Login (Username) {} is not unique. "
-                                   "Please check.".format(args.login))
+            # Find group to manipulate
 
-            user = user[0]
+            group = ad.get_group_by_samaccountname(group_name)
+            if len(group) != 1:
+                raise RuntimeError("Unable to find correct group for users")
+            group = group[0]
 
-        if args.life_number is not None:
-            user = ad.get_user_by_id(args.life_number)
-            if len(user) == 0:
-                raise RuntimeError("Unable to find user with life/guest"
-                                   " number {}, please check."
-                                   .format(args.life_number))
-            if len(user) != 1:
-                raise RuntimeError("Life/Guest number {} is not unique."
-                                   " Please check."
-                                   .format(args.life_number))
+            if args.login is not None:
+                for _login in args.login.split(','):
+                    _user = ad.get_user_by_samaccountname(_login)
+                    if len(_user) == 0:
+                        raise RuntimeError("Unable to find user {}, "
+                                           "please check."
+                                           .format(_login))
+                    if len(_user) != 1:
+                        raise RuntimeError("Login (Username) {} "
+                                           "is not unique. "
+                                           "Please check.".format(_login))
 
-            user = user[0]
+                    users.append(_user[0])
 
-        if args.purge:
-            user = ad.get_group_members(inst_config[group_name])
+            if args.life_number is not None:
+                for _life_number in args.life_number(','):
+                    _user = ad.get_user_by_id(_life_number)
+                    if len(_user) == 0:
+                        raise RuntimeError("Unable to find user "
+                                           "with life/guest "
+                                           "number {}, please check."
+                                           .format(_life_number))
+                    if len(_user) != 1:
+                        raise RuntimeError("Life/Guest number {} "
+                                           "is not unique. "
+                                           "Please check."
+                                           .format(_life_number))
 
-        group = group[0]
+                    users.append(_user[0])
 
-        if operation == "add":
-            try:
-                ad.add_user_to_group_by_dn(group['distinguishedName'],
-                                           user['distinguishedName'])
-            except LDAPInsufficientAccessRightsResult:
-                raise RuntimeError("Error adding user to group, "
-                                   "check you have the correct "
-                                   "permission.") from None
+            if args.purge:
+                user = ad.get_group_members(inst_config[group_name])
 
-            print("\nSuccessfully added right {} to user \"{}\""
-                  " for instrument {}\n"
-                  .format(right.upper(), user['displayName'],
-                          inst_config['name'].upper()))
+            for user in users:
 
-        if (operation == "remove") and (args.purge is False):
-            try:
-                ad.remove_user_from_group_by_dn(group['distinguishedName'],
-                                                user['distinguishedName'])
-            except LDAPInsufficientAccessRightsResult:
-                raise RuntimeError("Error removing user from group, "
-                                   "check you have the correct "
-                                   "permission.") from None
+                if operation == "add":
+                    try:
+                        ad.add_user_to_group_by_dn(group['distinguishedName'],
+                                                   user['distinguishedName'])
+                    except LDAPInsufficientAccessRightsResult:
+                        raise RuntimeError("Error adding user to group, "
+                                           "check you have the correct "
+                                           "permission.") from None
 
-            print("\nSuccessfully removed right {} from user \"{}\""
-                  " for instrument {}\n"
-                  .format(right.upper(), user['displayName'],
-                          inst_config['name'].upper()))
+                    print("\nSuccessfully added right {} to user \"{}\""
+                          " for instrument {}\n"
+                          .format(right.upper(), user['displayName'],
+                                  inst_config['name'].upper()))
 
-        if (operation == "remove") and (args.purge is True):
-            user_dn = [(u['distinguishedName'], u['displayName'])
-                       for u in user]
+                if (operation == "remove") and (args.purge is False):
+                    try:
+                        ad.remove_user_from_group_by_dn(
+                            group['distinguishedName'],
+                            user['distinguishedName'])
+                    except LDAPInsufficientAccessRightsResult:
+                        raise RuntimeError("Error removing user from group, "
+                                           "check you have the correct "
+                                           "permission.") from None
 
-            try:
-                print('')
-                for u in user_dn:
-                    print("Removing user : {}".format(u[1]))
-                    ad.remove_user_from_group_by_dn(
-                        group['distinguishedName'], u[0]
-                    )
+                    print("\nSuccessfully removed right {} from user \"{}\""
+                          " for instrument {}"
+                          .format(right.upper(), user['displayName'],
+                                  inst_config['name'].upper()))
 
-            except LDAPInsufficientAccessRightsResult:
-                raise RuntimeError("Error removing user from group, "
-                                   "check you have the correct "
-                                   "permission.") from None
+                if (operation == "remove") and (args.purge is True):
+                    user_dn = [(u['distinguishedName'], u['displayName'])
+                               for u in user]
 
-            print("\nSuccessfully removed all users"
-                  " for instrument {} with right '{}'\n"
-                  .format(inst_config['name'].upper(),
-                          right.upper()))
+                    try:
+                        print('')
+                        for u in user_dn:
+                            print("Removing user : {}".format(u[1]))
+                            ad.remove_user_from_group_by_dn(
+                                group['distinguishedName'], u[0]
+                            )
+
+                    except LDAPInsufficientAccessRightsResult:
+                        raise RuntimeError("Error removing user from group, "
+                                           "check you have the correct "
+                                           "permission.") from None
+
+                    print("\nSuccessfully removed all users"
+                          " for instrument {} with right '{}'\n"
+                          .format(inst_config['name'].upper(),
+                                  right.upper()))
 
 
 def n2sn_add_user():
