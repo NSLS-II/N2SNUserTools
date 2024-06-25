@@ -258,7 +258,7 @@ class ADObjects(object):
             raise RuntimeError(f"Group name '{group_name}' is not unique. "
                                f"Found groups: {group}")
         elif len(group) == 0:
-            raise RuntimeError(f"Group name '{group_name}' is empty.")
+            return list()
 
         group = group[0]
 
