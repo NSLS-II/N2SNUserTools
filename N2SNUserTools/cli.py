@@ -63,11 +63,6 @@ def read_config(parser, instrument=None, no_inst=False):
         print(parser.error(
             "Section 'common' missing from config file."))
 
-    if 'server_list' in config['common']:
-        server = config['common']['server_list']
-        server = server[random.randint(0, len(server) - 1)]
-        config['common']['server'] = server
-
     if no_inst is False:
         if instrument is None:
             if 'default_instrument' not in config['common']:
