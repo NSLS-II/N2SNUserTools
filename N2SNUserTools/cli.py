@@ -1,3 +1,4 @@
+import os
 import sys
 import random
 from os.path import expanduser, basename
@@ -19,6 +20,16 @@ config_files = [
 ]
 
 
+def default_instrument():
+    """Get default instrument from environment variable; otherwise None."""
+    beamline = os.environ.get("BEAMLINE_ACRONYM")
+
+    if beamline is None:
+        return None
+
+    return beamline.lower()
+
+
 def base_argparser(description, default_inst=True, auth=False):
     parser = argparse.ArgumentParser(
         prog=basename(sys.argv[0]),
@@ -32,7 +43,7 @@ def base_argparser(description, default_inst=True, auth=False):
         parser.add_argument(
             '-i', '--instrument', '--beamline', dest='instrument',
             action='store', help='Name of N2SN instrument',
-            default=None
+            default=default_instrument()
         )
 
     if auth:
