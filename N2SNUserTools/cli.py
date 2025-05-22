@@ -209,7 +209,7 @@ def n2sn_change_user(operation):
                     users.append(_user[0])
 
             if args.life_number is not None:
-                for _life_number in args.life_number(','):
+                for _life_number in args.life_number.split(','):
                     _user = ad.get_user_by_id(_life_number)
                     if len(_user) == 0:
                         raise RuntimeError("Unable to find user "
